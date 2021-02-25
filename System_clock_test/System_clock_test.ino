@@ -1,3 +1,7 @@
+#include <avr/interrupt.h>
+
+
+
 unsigned long timeClock = 0;
 unsigned long timeDifferent = 0;
 
