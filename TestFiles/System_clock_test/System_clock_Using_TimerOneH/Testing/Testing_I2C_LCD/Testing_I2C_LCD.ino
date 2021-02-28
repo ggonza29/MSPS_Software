@@ -1,12 +1,14 @@
 #include <TimerOne.h>
-#include "LCD.h"
+#include "LCDLib.h"
 
-#include <Wire.h> 
+//#include <Wire.h> 
 //#include <LiquidCrystal_I2C.h>
 
 //LiquidCrystal_I2C lcd(0x27,20,4);
 
 #include "LCDLib.h"
+
+screen LCDLib;
 
 screen scre(true);
 
@@ -16,9 +18,9 @@ void setup() {
   lcd.backlight();
   lcd.clear();
   lcd.setCursor(0,0);*/
-  lcdlib.SETUP();
+  LCDLib.SETUP();
   Serial.begin(9600);
-  Timer1.initialize(10000000);// the arduino clock is currently running at 1ns so for one second timer check we need to initialize the timer 1 mil for 1 sec
+  Timer1.initialize(100000000);// the arduino clock is currently running at 1ns so for one second timer check we need to initialize the timer 1 mil for 1 sec
   Timer1.attachInterrupt(checkStatus); // after one second has pass it will jump to the function check status
 }
 
@@ -34,6 +36,6 @@ void loop() {
 }
 
 void checkStatus(){
-  //lcdlib.displayLCD();
+  LCDLib.displayLCD();
   return;
 }
