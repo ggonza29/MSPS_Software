@@ -1,14 +1,24 @@
 //****************
 /*modification
+ * George Gonzalez 
+ * modified brock security system 
+ * to power off and power down the security system.
+ */
   /*
 *****************************/
-#include <TimerOne.h> //interrupt timer to check 
+#include <TimerOne.h> // calls the library for the periodic interrupt timer
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
 
+#define half_an_hour 180000//1800000 this is the tiem 30 min for the security system to be on but first testing it with 3 minute
+#define alert_before_lcd_off 60000 //300000 first esting with one minute then change it to 5 min
+#define OneMinute 60000 // one minute the LCD should be off after one minute of no user interaction
+
 //Brock code from security keypad
+
+
 #define password_length 5
 char holder[password_length]; //keeps the password
 char correctPassword[password_length] = "2003";
@@ -63,24 +73,24 @@ void setup() {
   digitalWrite(redLED, HIGH);      //sets redLED always HIGH @ start to replicate security system activated
   Serial.begin(9600);
   Timer1.initialize(10000000);// Sets the periodic interrupt timer to 10 seconds
-  Timer1.attachInterrupt(checkStatus); // after 10 second has pass it will jump to the function check status of the battery.
+  Timer1.attachInterrupt(checkStatus); // after 10 second has pass it will jump to the named function and check the current of the system.
 }
 
 void loop() {
 
-  if (keypad.getKey() && (States[0] == currentState)) {
+  if (keypad.getKey() && (States[0] == currentState)) { //checking if the state we are in off LCD off and we have 
     LCD_On = true;                //Turn on the back light of the LCD
+    lcd.clear();
     lcd.backlight();              //sets the backlight of the LCD to be visible
     lcd.setCursor(0, 0);
     lcd.print("Enter Password:");
     timeStarted = millis();
     currentState = States[1];
   }
-  if (States[1] == currentState) {
-    holder[passwordPlace] = keypad.getKey();
-    if (holder[buttonState]) {
-      buttonState
-      ++;
+  if (States[1] == currentState) {    //if we are in 
+    holder[holder_count] = keypad.getKey();
+    if (holder[holder_count]) {
+      buttonState++;
     }
   }
   buttonState = digitalRead(10);       //checks for push button input
@@ -111,6 +121,7 @@ void loop() {
   if (currentState == States[1] && oneMinute <= (millis() - timeStarted)) {
     lcd.noBacklight();
     currentState = States[0];
+    lcd.clear();
   }
 
 }
