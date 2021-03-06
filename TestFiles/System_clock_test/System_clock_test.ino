@@ -19,10 +19,9 @@
 //Brock code from security keypad
 
 #define password_length 5
-char placeholder;
+
 char holder[password_length]; //keeps the password
 char correctPassword[password_length] = "2003";
-int state = 0; //used for the "Enter Password" message
 
 int buttonState = 0;    //used to hold value of push button whether it's pushed or not
 int redLED = 13;        //initialize pin 13 for redLED used for testing
@@ -48,11 +47,11 @@ char kp[ROWS][COLS] = { //set keypad array
 
 };
 
-char KeyPress[4]; //the expected keypress input for password
-int States[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-// 0 - no state(security system on), 1 - keypad security is waiting for user input, 2 - security system is off , 3 - maximum #'s of wrong attempt has been reached...
-int currentState = States[0];    //initial sstate
-boolean LCD_On = false;          // the condition of the LC and start with the LCD off
+int currentState = 0;
+/*different state: state 0 - lcd off security system on; state 1 - LCD on waiting for security pin; state 2 - security system is off;
+* state 3 - keypad is lock due to 3 wrong attempts;
+*/
+
 unsigned long timeStarted;       //used to check how much time passed between keypress
 unsigned long oneMinute = 60000; //one minte in millis()
 int passwordPlace = 0;           // used to detemine the place of the keypad password
@@ -79,14 +78,14 @@ void setup()
 
 void loop()
 {
-    placeholder = keypad.getKey(); //gets kep press
+    keyPress = keypad.getKey();    //gets kep press
     buttonState = digitalRead(10); // checks for reset
     switch (currentState)
     {
     case 0:
-        if (keypad.getKey() || placeholder)
-        {                  //checking if the state we are in off LCD off and we have
-            LCD_On = true; //Turn on the back light of the LCD
+        if (keypad.getKey() || keyPress)
+        { //checking if the state we are in off LCD off and we have
+
             lcd.clear();
             timeStarted = millis();
             currentState = 1;
@@ -98,9 +97,9 @@ void loop()
         lcd.backlight(); //sets the backlight of the LCD to be visible
         lcd.setCursor(0, 0);
         lcd.print("Enter Password:");
-        if (placeholder)
-        {                                       //if we are in LCD on state waiting for keyinput
-            holder[holder_count] = placeholder; //If  valid key is enterd and print it on the lcd
+        if (keyPress)
+        {                                    //if we are in LCD on state waiting for keyinput
+            holder[holder_count] = keyPress; //If  valid key is enterd and print it on the lcd
             lcd.setCursor(holder_count, 1);
             lcd.print(holder[holder_count]);
             holder_count++;
@@ -118,17 +117,17 @@ void loop()
             timerState = 0;
             timer();            //calls the timer function to begin countdown before automatically restarting
             wrong_password = 0; //sets state back to start message to reset the # of wrong entries back to 0
-            state = 0;
+
+            currentState = 2;
         }
-        else if (strcmp(holder, correctPassword) && holder_count == 4 && States[1] == currentState)
+        else if (strcmp(holder, correctPassword) && holder_count == 4)
         { //checks if the password is incorrect and accumulates the # of attempts
-            lcd.clear();
-            clearholder();
-            lcd.print("Incorrect Password");
-            Serial.println("Incorrect Password");
+            //Serial.println("Incorrect Password");
+            
             wrong_password++;
             wrong_pw(); //calls wrong_pw function to let operator know to use the reset button
             delay(2000);
+            lcd.clear();
         }
         else if (oneMinute <= (millis() - timeStarted))
         {
@@ -139,77 +138,38 @@ void loop()
         }
         break;
     case 2:
-        if (placeholder == '#' || placeholder =='#'){
-            timer();
-
-        }else if(placeholder){
+        if (keyPress == '#' || keyPress == '#')
+        {
             timer();
         }
-        if (state == 1){
-          lcd.noBacklight();
-          lcd.clear();
-          currentState = 0;
+        else if (keyPress)
+        {
+            timer();
+        }
+        if (timerState == 1)
+        {
+            lcd.noBacklight();
+            lcd.clear();
+            currentState = 0;
         }
         break;
     case 3:
         if (buttonState == HIGH)
         {
+            lcd.clear();
+            clearholder();
+            lcd.print("Alarm Deactivated");
+            delay(1000);
+            timerState = 0;
+            timer();            //calls the timer function to begin countdown before automatically restarting
+            wrong_password = 0; //sets state back to start message to reset the # of wrong entries back to 0
             currentState = 2;
+        }
+        else if(keyPress){
+            wrong_pw();
         }
         break;
     }
-    /*
-    if (keypad.getKey() && (States[0] == currentState)) { //checking if the state we are in off LCD off and we have
-      LCD_On = true;                //Turn on the back light of the LCD
-      lcd.clear();
-      lcd.backlight();              //sets the backlight of the LCD to be visible
-      lcd.setCursor(0, 0);
-      lcd.print("Enter Password:");
-      timeStarted = millis();
-      currentState = States[1];
-      holder_count = 0;
-      clearholder();
-    }
-
-    placeholder = keypad.getKey();
-    Serial.print(placeholder);
-    if (States[1] == currentState && placeholder) {    //if we are in LCd on state waiting for keyinput
-        holder[holder_count] = placeholder;                       //If  valid key is enterd and print it on the lcd
-        lcd.setCursor(holder_count, 1);
-        lcd.print(holder[holder_count]);
-        holder_count++;
-        timeStarted = millis(); //resets the time for when the LCD should turn off since it received a user input
-    }
-    //digital read was tested to have not affect
-    buttonState = digitalRead(10);       //checks for push button input
-    //checks for the correct holder_count length of 4, the push button press, and the state = 1 where the number of entires is maximum
-    if (!strcmp(holder, correctPassword) && States[1] == currentState || buttonState == HIGH) {
-      lcd.clear();
-      clearholder();
-      lcd.print("Alarm Deactivated");
-      delay(1000);
-      timerState = 0;
-      timer();                  //calls the timer function to begin countdown before automatically restarting
-      wrong_password = 0;     //sets state back to start message to reset the # of wrong entries back to 0
-      state = 0;
-    }
-    else if (strcmp(holder, correctPassword) && holder_count == 4 && States[1] == currentState ) {       //checks if the password is incorrect and accumulates the # of attempts
-      lcd.clear();
-      clearholder();
-      lcd.print("Incorrect Password");
-      Serial.println("Incorrect Password");
-      wrong_password++;
-      wrong_pw();                                                   //calls wrong_pw function to let operator know to use the reset button
-      delay(2000);
-    }
-
-    if (currentState == States[1] && oneMinute <= (millis() - timeStarted)) {
-      lcd.noBacklight();
-      currentState = States[0];
-      lcd.clear();
-      clearholder();
-    }
-  */
 }
 
 void checkStatus()
@@ -219,15 +179,17 @@ void checkStatus()
 
 void wrong_pw()
 { //function to check if the # of passwords is 2 (this is for testing to make things shorter; will be adjusted)
-    while (wrong_password >= 2)
+    lcd.clear();
+    clearholder();
+    lcd.print("Incorrect Password");
+    if (wrong_password > 2)
     {
-        buttonState = digitalRead(10);
+        currentState = 3;
         lcd.setCursor(0, 3);
         lcd.print("Must Unlock With Key");
-        if (buttonState == HIGH && States[3] == currentState)
+        if (buttonState == HIGH)
         { //checks if push button is pressed in order to reset security system
             wrong_password = 0;
-            state = 1;
         }
     }
 }
@@ -244,7 +206,7 @@ void timer()
 { //timer used to begin countdown when correct password has been entered or push button has been pressed (time is only 3 minutes_seconds for testing; will be adjusted)
     while (timerState == 0)
     {
-        char keyPress = keypad.getKey();
+        keyPress = keypad.getKey();
         int mins = minutes_seconds / 60; //stores the minutes value
         int secs = minutes_seconds % 60; //stores the seconds value
         current_time = millis();         //current_time program beings
@@ -274,7 +236,6 @@ void timer()
         if (timerState == 0 && keyPress == '*')
         { //if the '*' key is pressed, it resets the timer
             timerState = 1;
-            state = 0;
             minutes_seconds = 3;
         }
 
@@ -290,7 +251,7 @@ void timer()
             lcd.clear();
             timerState = 1;
             minutes_seconds = 3;
-            
+
             //need LEDs etc. here** will be set at a later time
             break;
         }
