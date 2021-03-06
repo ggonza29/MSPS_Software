@@ -51,7 +51,7 @@ int currentState = 0;
 /*different state: state 0 - lcd off security system on; state 1 - LCD on waiting for security pin; state 2 - security system is off;
 * state 3 - keypad is lock due to 3 wrong attempts;
 */
-
+unsigned long wrong_pw_timer;    //used to display the amount of time the user needs to wait for the wrond pasword display to end
 unsigned long timeStarted;       //used to check how much time passed between keypress
 unsigned long oneMinute = 60000; //one minte in millis()
 int passwordPlace = 0;           // used to detemine the place of the keypad password
@@ -123,7 +123,7 @@ void loop()
         else if (strcmp(holder, correctPassword) && holder_count == 4)
         { //checks if the password is incorrect and accumulates the # of attempts
             //Serial.println("Incorrect Password");
-            
+
             wrong_password++;
             wrong_pw(); //calls wrong_pw function to let operator know to use the reset button
             delay(2000);
@@ -132,7 +132,7 @@ void loop()
         else if (oneMinute <= (millis() - timeStarted))
         {
             lcd.noBacklight();
-            currentState = 2;
+            currentState = 0;
             lcd.clear();
             clearholder();
         }
@@ -165,8 +165,14 @@ void loop()
             wrong_password = 0; //sets state back to start message to reset the # of wrong entries back to 0
             currentState = 2;
         }
-        else if(keyPress){
+        else if (keyPress)
+        {
             wrong_pw();
+        }
+        else if (3000 < (millis() - wrong_pw_timer))
+        {
+            lcd.noBacklight();
+            lcd.clear();
         }
         break;
     }
@@ -179,7 +185,9 @@ void checkStatus()
 
 void wrong_pw()
 { //function to check if the # of passwords is 2 (this is for testing to make things shorter; will be adjusted)
+    wrong_pw_timer = millis();
     lcd.clear();
+    lcd.backlight();
     clearholder();
     lcd.print("Incorrect Password");
     if (wrong_password > 2)

@@ -94,8 +94,8 @@ int SOC = 25;
 bool RemoteOnOff = false;
 bool PowerButtonProlongedSignal = false;
 float PowerButtonTimeMark = 0; // variable to keep the signal from power button high for 1 minute
-const int buttonPin = 2;
-const int RemotePin = 3;
+const int buttonPin = 10; // orginal pin where 2;
+const int RemotePin = 11; // original pin where 3;
 //SOC
 
 
