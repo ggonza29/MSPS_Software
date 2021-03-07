@@ -51,10 +51,10 @@ int currentState = 0;
 /*different state: state 0 - lcd off security system on; state 1 - LCD on waiting for security pin; state 2 - security system is off;
 * state 3 - keypad is lock due to 3 wrong attempts;
 */
-unsigned long wrong_pw_timer;    //used to display the amount of time the user needs to wait for the wrond pasword display to end
+unsigned long pw_timer;    //used to display the amount of time the user needs to wait for the wrond pasword display to end
 unsigned long timeStarted;       //used to check how much time passed between keypress
 unsigned long oneMinute = 60000; //one minte in millis()
-int passwordPlace = 0;           // used to detemine the place of the keypad password
+
 
 //assign Arduino pins 9-2 for rows & columns
 byte rowPins[ROWS] = {9, 8, 7, 6}; //sets pins used for the keypad rows
@@ -80,20 +80,24 @@ void loop()
 {
     keyPress = keypad.getKey();    //gets kep press
     buttonState = digitalRead(10); // checks for reset
-    switch (currentState)
+    switch (currentState)           //goes through all 5 state of the security system keypad
     {
-    case 0:
+    case 0:                   //The security system is off and the LCD is off
+        
+            lcd.clear();
+            lcd.noBacklight();
         if (keypad.getKey() || keyPress)
         { //checking if the state we are in off LCD off and we have
 
-            lcd.clear();
             timeStarted = millis();
             currentState = 1;
             holder_count = 0;
             clearholder();
         }
         break;
-    case 1:
+    case 1:                     //The user is attempting to turn off the security system
+        //after the two second from the incorrect password we are allowed to receive new keys inputs
+          
         lcd.backlight(); //sets the backlight of the LCD to be visible
         lcd.setCursor(0, 0);
         lcd.print("Enter Password:");
@@ -105,20 +109,20 @@ void loop()
             holder_count++;
             timeStarted = millis(); //resets the time for when the LCD should turn off since it received a user input
         }
-        //digital read was tested to have not affect
-        //checks for push button input
-        //checks for the correct holder_count length of 4, the push button press, and the state = 1 where the number of entires is maximum
+        
+        //checks if the correct password was enter
+        //note: buttonState == HIGH may be place outside the switch if we want to reset the system everytime the button is high no matter what.
+        
         if (!strcmp(holder, correctPassword) || buttonState == HIGH)
         {
             lcd.clear();
             clearholder();
             lcd.print("Alarm Deactivated");
-            delay(1000);
             timerState = 0;
-            timer();            //calls the timer function to begin countdown before automatically restarting
             wrong_password = 0; //sets state back to start message to reset the # of wrong entries back to 0
-
-            currentState = 2;
+            currentState = 5;
+            pw_timer = millis();
+            
         }
         else if (strcmp(holder, correctPassword) && holder_count == 4)
         { //checks if the password is incorrect and accumulates the # of attempts
@@ -126,8 +130,7 @@ void loop()
 
             wrong_password++;
             wrong_pw(); //calls wrong_pw function to let operator know to use the reset button
-            delay(2000);
-            lcd.clear();
+            
         }
         else if (oneMinute <= (millis() - timeStarted))
         {
@@ -136,9 +139,10 @@ void loop()
             lcd.clear();
             clearholder();
         }
+        
         break;
-    case 2:
-        if (keyPress == '#' || keyPress == '#')
+    case 2:                                     //the security system is deactivated
+        if (keyPress == '#' || keyPress == '*')
         {
             timer();
         }
@@ -153,28 +157,38 @@ void loop()
             currentState = 0;
         }
         break;
-    case 3:
-        if (buttonState == HIGH)
+    case 3:                   //The security is lock due to 3 continuous wrong attempts
+        if (buttonState == HIGH)          //if the external reset button is press it will deactivate the security system
         {
             lcd.clear();
             clearholder();
             lcd.print("Alarm Deactivated");
-            delay(1000);
             timerState = 0;
-            timer();            //calls the timer function to begin countdown before automatically restarting
             wrong_password = 0; //sets state back to start message to reset the # of wrong entries back to 0
-            currentState = 2;
+            currentState = 5;   //move to the deactivate state
         }
-        else if (keyPress)
+        else if (keyPress)        //if the keypad is press it will display the lock screen waiting for key
         {
             wrong_pw();
         }
-        else if (3000 < (millis() - wrong_pw_timer))
+        else if (3000 < (millis() - pw_timer))
         {
             lcd.noBacklight();
             lcd.clear();
         }
         break;
+        case 4:       //intermediate state to wait for the timer to run out before attempting the security code again
+          if(2000 < (millis() - pw_timer)){    //making sure we display the wrong password was enter for 2 second
+          lcd.clear();
+          currentState = 1;
+        }        
+          break;
+         case 5:     //intermediate state for the system to acknowledge the user has deactivated the security system
+            if(1000 < (millis() - pw_timer)){
+            currentState = 0;
+            timer();            //calls the timer function to begin countdown before automatically restarting
+            }
+            break;
     }
 }
 
@@ -185,13 +199,15 @@ void checkStatus()
 
 void wrong_pw()
 { //function to check if the # of passwords is 2 (this is for testing to make things shorter; will be adjusted)
-    wrong_pw_timer = millis();
+    pw_timer = millis();
     lcd.clear();
+    lcd.backlight();
     lcd.backlight();
     clearholder();
     lcd.print("Incorrect Password");
+    currentState = 4;
     if (wrong_password > 2)
-    {
+    {   
         currentState = 3;
         lcd.setCursor(0, 3);
         lcd.print("Must Unlock With Key");
