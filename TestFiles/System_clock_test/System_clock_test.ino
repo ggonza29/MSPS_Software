@@ -143,10 +143,16 @@ void loop()
 
         break;
     case 2:                  //the security system is deactivated
+        timer();
         if (keyPress == '#') // using '#' to reset the deactivated security timer
         {
-            timer();
+            minutes_seconds = 60;
+            reset_timer = 0;
+            LCD_off = 1;
+            pw_timer = millis();
+            current_time = millis(); //current_time program beings
             reset_timer = 1;
+            timer();
         }
         else if (keyPress == '*') // using the '*' for the system should reactivate the security system
         {
@@ -160,17 +166,14 @@ void loop()
         else if (keyPress)
         {
             timer();
-            lcd.backlight();
             pw_timer = millis();
             LCD_off = 1;
         }
-        else if (10000 < (millis() - pw_timer))
+        else if ( LCD_off == 1 && (10000 < (millis() - pw_timer)))
         {
             lcd.noBacklight();
             lcd.clear();
             LCD_off = 0;
-        }else{
-        timer();
         }
         break;
     case 3:                      //The security is lock due to 3 continuous wrong attempts
@@ -206,7 +209,11 @@ void loop()
             lcd.clear();
             currentState = 2;
             reset_timer = 1;
-            pw_timer = millis();
+            minutes_seconds = 60;     //sets the allotted time
+            reset_timer = 0;
+            LCD_off = 1;              //turns on the LCD for the timer()
+            pw_timer = millis();      //keep track for how long we want the LCD to be on
+            current_time = millis(); //current_time program beings
             timer(); //calls the timer function to begin countdown before automatically restarting
         }
         break;
@@ -256,19 +263,39 @@ void clearholder()
 
 void timer()
 {
-    if (reset_timer = 1) //here we reset the timer and get our current time for reference
-    {
-        minutes_seconds = 60;
-        reset_timer = 0;
-        LCD_off = 1;
-        current_time = millis(); //current_time program beings
-    }
+
 
     //checks if the beginning state is 0. This is allows us to change the state to get out of the specific if statements
     if ((millis() - current_time) > 1000)
     { //checks the current and previous timer for 1 second. This will be how slow the timer counts down
-        if (minutes_seconds == 0)
-        {
+        
+        
+         minutes_seconds--; //decrements the number of seconds
+        
+        current_time = millis();
+        
+    }
+    mins = minutes_seconds / 60; //stores the minutes value
+    secs = minutes_seconds % 60; //stores the seconds value
+  
+       if(LCD_off == 1){
+        lcd.backlight();
+        lcd.setCursor(3, 1); //displays the countdown message with the minutes:seconds
+        lcd.print("Time Remaining");
+        lcd.setCursor(8, 2);
+        lcd.print(mins);
+        lcd.print(":");
+        if (secs > 9){
+          lcd.print(secs);
+        }
+        else{
+          lcd.print("0");
+          lcd.print(secs);
+        }
+       }
+    if (minutes_seconds <= 0)
+        { 
+            lcd.backlight();
             lcd.setCursor(3, 1);
             lcd.print("**TIME IS UP**");
             lcd.setCursor(3, 2);
@@ -277,28 +304,5 @@ void timer()
             pw_timer = millis();
             return;
         }
-        else
-        {
-            minutes_seconds--; //decrements the number of seconds
-        }
-        current_time = millis();
-        lcd.clear();
-    }
-    mins = minutes_seconds / 60; //stores the minutes value
-    secs = minutes_seconds % 60; //stores the seconds value
-  
-       
-        lcd.setCursor(3, 1); //displays the countdown message with the minutes:seconds
-        lcd.print("Time Remaining");
-        lcd.setCursor(8, 2);
-        lcd.print(mins);
-        lcd.print(":");
-        if (secs > 10){
-          lcd.print(secs);
-        }
-        else{
-          lcd.print("0");
-          lcd.print(secs);
-        }
-    
+        return;
 }
