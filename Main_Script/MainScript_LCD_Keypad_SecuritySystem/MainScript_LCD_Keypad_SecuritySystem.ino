@@ -157,6 +157,7 @@ void loop()
         else if (keyPress == '*') // using the '*' for the system should reactivate the security system
         {
             lcd.clear();
+            lcd.backlight();
             LCD_off = 0;
             lcd.setCursor(3, 1);
             lcd.print("Alarm Activated");
