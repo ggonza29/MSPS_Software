@@ -75,7 +75,7 @@ void setup()
     pinMode(10, INPUT);         //sets pin 10 for push button
     digitalWrite(redLED, HIGH); //sets redLED always HIGH @ start to replicate security system activated
     Serial.begin(9600);
-    Timer1.initialize(10000000);         // Sets the periodic interrupt timer to 10 seconds
+    Timer1.initialize(5000000);         // Sets the periodic interrupt timer to 10 seconds
     Timer1.attachInterrupt(checkStatus); // after 10 second has pass it will jump to the named function and check the current of the system.
 }
 
@@ -230,7 +230,7 @@ void loop()
 
 void checkStatus()
 {
-    Serial.println("10 Second has pass");
+    Serial.println("5 Seconds has pass");
 }
 
 void wrong_pw()
